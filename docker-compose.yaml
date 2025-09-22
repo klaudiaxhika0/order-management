@@ -1,0 +1,80 @@
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: order_management_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - order_management_network
+
+  # PHP-FPM for Laravel
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: order_management_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - order_management_network
+    depends_on:
+      - mysql
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: order_management_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - order_management_network
+    depends_on:
+      - app
+
+  # Redis for Caching (Optional)
+  redis:
+    image: redis:alpine
+    container_name: order_management_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - order_management_network
+
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  order_management_network:
+    driver: bridge
