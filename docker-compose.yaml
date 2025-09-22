@@ -1,10 +1,10 @@
 services:
-  # MySQL Database
   mysql:
     image: mysql:8.0
     container_name: order_management_mysql
     restart: unless-stopped
     environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
@@ -16,7 +16,6 @@ services:
     networks:
       - order_management_network
 
-  # PHP-FPM for Laravel
   app:
     build:
       context: .
@@ -39,7 +38,6 @@ services:
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
 
-  # Nginx Web Server
   nginx:
     image: nginx:alpine
     container_name: order_management_nginx
@@ -56,7 +54,6 @@ services:
     depends_on:
       - app
 
-  # Redis for Caching (Optional)
   redis:
     image: redis:alpine
     container_name: order_management_redis
